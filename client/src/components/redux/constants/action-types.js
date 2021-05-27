@@ -1,0 +1,20 @@
+//declare actions as constants
+export const OPACITY = "OPACITY";
+export const TOP = "TOP";
+export const SUBMIT = "SUBMIT";
+export const WIDTH = "WIDTH";
+export const SCALE = "SCALE";
+export const SET_USER_PROFILE = "SET_USER_PROFILE";
+export const MATCH_HISTORY = "MATCH_HISTORY";
+export const ERROR_MESSAGE = "ERROR_MESSAGE";
+export const ERROR = "ERROR";
+export const USERNAME = "USERNAME";
+export const LOADING = "LOADING";
+export const VERSION = "VERSION";
+export const RANKED = "RANKED";
+export const MY_CHAMP = "MY_CHAMP";
+export const PLAYED_CHAMP = "PLAYED_CHAMP";
+export const PLAYING_TIME = "PLAYING_TIME";
+export const ALL_MATCH = "ALL_MATCH";
+export const SPELLS = "SPELLS";
+export const PERKS = "PERKS";
