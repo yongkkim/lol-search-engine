@@ -19,6 +19,18 @@ import {
   setDragonDataVersion,
   setSpells,
   setPerks,
+  setMatchHistory,
+  setMyChamp,
+  setPlayingTime,
+  setAllMatch,
+  setPlayedChamp,
+  setPlayerItems,
+  setPlayerSpells,
+  setMyItems,
+  setMySpells,
+  setMySpellSet,
+  setMyPerkSet,
+  setMyItemSet,
 } from "./components/redux/actions";
 import fetch from "node-fetch";
 
@@ -53,14 +65,14 @@ const Overlay = styled.div`
 `;
 
 const SearchContainer = styled.div`
-  position: absolute;
+  position: fixed;
   min-height: inherit;
   width: 100%;
   opacity: ${(p) => p.opacity};
   transform: scale(${(p) => p.scale});
   ${(p) => p.submit && `background-color: rgba(0, 0, 0, 0.1);`};
   transition: opacity 1.5s ease-in-out, transform 2s 3s;
-  z-index: -1;
+  z-index: 1;
 `;
 
 const ResultContainer = styled.div`
@@ -146,7 +158,6 @@ const App = ({
   username,
   profile,
   loading,
-  version,
   setOpacity,
   setScale,
   setWidth,
@@ -160,8 +171,56 @@ const App = ({
   setDragonDataVersion,
   setSpells,
   setPerks,
+  setMatchHistory,
+  setMyChamp,
+  setPlayingTime,
+  setAllMatch,
+  setMySpellSet,
+  setMyPerkSet,
+  setMyItemSet,
 }) => {
+  // const matchAPI = async (pf) => {
+  //   //Get information of most recent 7 matches (game ids, champion ids, time)
+  //   await fetch(`/api/allmatch?id=${pf.accountId}&number=${number}`)
+  //     .then((res) => res.json())
+  //     .then(async (res) => {
+  //       //get detailed information of each of 7 matches using game ids from the first fetch
+  //       let ids = await res.gameInfo.map((id) => id[0]);
+
+  //       await Promise.all(ids.map((id) => fetch(`/api/match?gameId=${id}`)))
+  //         .then((allRes) => Promise.all(allRes.map((res) => res.json())))
+  //         .then(async (data) => {
+  //           let values = await data.map((champData) => {
+  //             return champData.data;
+  //           });
+  //           //store results from the first fetch
+  //           await setAllMatch(allMatch.concat(res.gameInfo));
+  //           await setMatchHistory(matchHistory.concat(values));
+
+  //           await getSpellsDurationGameMode(
+  //             allMatch.concat(res.gameInfo),
+  //             matchHistory.concat(values)
+  //           );
+  //           await getItemsKDAWin(
+  //             allMatch.concat(res.gameInfo),
+  //             matchHistory.concat(values)
+  //           );
+  //         })
+  //         .catch((err) => {
+  //           console.error(err);
+  //         });
+  //     });
+  // };
+
   const handleSubmit = async (e) => {
+    if (Object.keys(profile).length !== 0) {
+      await setUserProfile({});
+      await setAllMatch([]);
+      await setMatchHistory([]);
+      await setMySpellSet({});
+      await setMyPerkSet({});
+      await setSubmit(false);
+    }
     e.preventDefault();
     let cleanedUsername = username.replace(/['"]+/g, "").trim();
     if (cleanedUsername !== "") {
@@ -169,15 +228,25 @@ const App = ({
       await fetch(`/api/profile?username=${cleanedUsername}`)
         .then((res) => res.json())
         .then((data) => {
-          setUserProfile(data.data);
+          if (!data.data.status.message) {
+            setUserProfile(data.data);
+            // matchAPI(data.data);
+            setSubmit(true);
+            setError(false);
+            setTimeout(() => {
+              setLoading(false);
+            }, 2000);
+          } else {
+            console.log(data.data.status);
+            setError(true);
+            setErrorMsg(data.data.status.message);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
         });
-
-      setSubmit(true);
-      setError(false);
-      setTimeout(() => {
-        setLoading(false);
-      }, 2000);
     } else {
+      setError(true);
       setErrorMsg("Username should not be empty");
     }
   };
@@ -185,6 +254,7 @@ const App = ({
   const handleChange = (e) => {
     let input = e.target.value;
     if (input.length < 17) {
+      setError(false);
       setUsername(input);
     } else {
       setError(true);
@@ -219,8 +289,7 @@ const App = ({
 
   useEffect(() => {
     if (submit) {
-      setTop(-50);
-    } else {
+      setTop(-45);
     }
   }, [submit]);
 
@@ -250,10 +319,13 @@ const App = ({
           {error && <ErrorAlert />}
         </SearchForm>
       </SearchContainer>
-      <ResultContainer show={Object.keys(profile).length !== 0 && !loading}>
-        <Profile />
-        <ResultPage />
-      </ResultContainer>
+      {!error && (
+        <ResultContainer show={Object.keys(profile).length !== 0 && !loading}>
+          {console.log(error)}
+          {Object.keys(profile).length !== 0 && !loading && <Profile />}
+          {Object.keys(profile).length !== 0 && !loading && <ResultPage />}
+        </ResultContainer>
+      )}
     </Container>
   );
 };
@@ -288,6 +360,19 @@ const mapDispatchToProps = (dispatch) => {
     setDragonDataVersion: (version) => dispatch(setDragonDataVersion(version)),
     setSpells: (value) => dispatch(setSpells(value)),
     setPerks: (value) => dispatch(setPerks(value)),
+
+    setMatchHistory: (value) => dispatch(setMatchHistory(value)),
+    setMyChamp: (value) => dispatch(setMyChamp(value)),
+    setPlayingTime: (value) => dispatch(setPlayingTime(value)),
+    setAllMatch: (value) => dispatch(setAllMatch(value)),
+    setPlayedChamp: (value) => dispatch(setPlayedChamp(value)),
+    setPlayerSpells: (value) => dispatch(setPlayerSpells(value)),
+    setPlayerItems: (value) => dispatch(setPlayerItems(value)),
+    setMySpells: (value) => dispatch(setMySpells(value)),
+    setMyItems: (value) => dispatch(setMyItems(value)),
+    setMySpellSet: (value) => dispatch(setMySpellSet(value)),
+    setMyPerkSet: (value) => dispatch(setMyPerkSet(value)),
+    setMyItemSet: (value) => dispatch(setMyItemSet(value)),
   };
 };
 

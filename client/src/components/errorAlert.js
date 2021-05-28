@@ -6,7 +6,7 @@ import { setError } from "./redux/actions";
 
 const AlertMsg = styled.div`
   position: absolute;
-  top: 300px;
+  top: 115px;
   width: 40%;
   border-radius: 10px;
   background-color: #f8d7da;
