@@ -27,17 +27,22 @@ const ProfileImage = styled.img`
   height: 130px;
 `;
 
-const Profile = ({ profile, loading, version, ranked, setRanked }) => {
+const Profile = ({
+  profile,
+  profileReady,
+  version,
+  ranked,
+  setRanked,
+  show,
+}) => {
   useEffect(() => {
-    if (Object.keys(profile).length !== 0) {
-      let rankedAPI = async () => {
-        let response = await fetch(`/api/ranked?summonerID=${profile.id}`);
-        response = await response.json();
-        setRanked(response.data);
-      };
-      rankedAPI();
-    }
-  }, [profile]);
+    let rankedAPI = async () => {
+      let response = await fetch(`/api/ranked?summonerID=${profile.id}`);
+      response = await response.json();
+      setRanked(response.data);
+    };
+    if (profileReady) rankedAPI();
+  }, [profileReady]);
 
   const profileImage =
     Object.keys(profile).length !== 0
@@ -79,6 +84,7 @@ const mapStateToProps = (state) => {
     loading: state.loading,
     version: state.version,
     ranked: state.ranked,
+    profileReady: state.profileReady,
   };
 };
 

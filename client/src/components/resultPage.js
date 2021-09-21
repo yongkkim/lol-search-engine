@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import styled from "styled-components";
 import { connect } from "react-redux";
@@ -7,6 +7,8 @@ import {
   setMyChamp,
   setPlayingTime,
   setAllMatch,
+  setPlayerSpells,
+  setMySpells,
 } from "./redux/actions";
 import { CircularProgress } from "@material-ui/core";
 import SingleMatch from "./singleMatch";
@@ -30,68 +32,85 @@ const NoMore = styled.p`
 `;
 
 const ResultPage = ({
-  spells,
   allMatch,
+  profileReady,
   profile,
-  myChamp,
-  version,
-  playingTime,
   matchHistory,
+  playerSpells,
+  mySpells,
   setMatchHistory,
-  setMyChamp,
-  setPlayingTime,
   setAllMatch,
+  setPlayerSpells,
+  setMySpells,
 }) => {
   const [number, setNumber] = useState(7);
   const [prevNumber, setPrevNumber] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [playerSpells, setPlayerSpells] = useState([]);
   const [playerItems, setPlayerItems] = useState([]);
-  const [mySpells, setMySpells] = useState([]);
   const [myItems, setMyItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [countMatches, setCountMatches] = useState(0);
 
   const matchAPI = async () => {
     //Get information of most recent 7 matches (game ids, champion ids, time)
-    await fetch(`/api/allmatch?id=${profile.accountId}&number=${number}`)
-      .then((res) => res.json())
-      .then(async (res) => {
-        //get detailed information of each of 7 matches using game ids from the first fetch
-        let ids = await res.gameInfo.map((id) => id[0]);
+    setApiLoading(true);
+    let findAllMatches = await fetch(
+      `/api/allmatch?id=${profile.accountId}&number=${number}`
+    );
+    findAllMatches = await findAllMatches.json();
 
-        await Promise.all(ids.map((id) => fetch(`/api/match?gameId=${id}`)))
-          .then((allRes) => Promise.all(allRes.map((res) => res.json())))
-          .then(async (data) => {
-            let values = await data.map((champData) => {
-              return champData.data;
-            });
-            //store results from the first fetch
-            await setAllMatch(allMatch.concat(res.gameInfo));
-
-            await setMatchHistory(matchHistory.concat(values));
-          })
-          .catch((err) => {
-            console.error(err);
-          });
-      });
+    //get detailed information of each of 7 matches using game ids from the first fetch
+    let ids = findAllMatches.gameInfo.map((id) => id[0]);
+    let findEachMatch = await Promise.all(
+      ids.map((id) => fetch(`/api/match?gameId=${id}`))
+    );
+    findEachMatch = await Promise.all(
+      findEachMatch.map((eachMatch) => eachMatch.json())
+    );
+    let values = findEachMatch.map((champData) => champData.data);
+    //store results from the first fetch
+    setAllMatch(allMatch.concat(findAllMatches.gameInfo));
+    setMatchHistory(matchHistory.concat(values));
+    setApiLoading(false);
   };
 
   useEffect(() => {
-    if (prevNumber !== number && Object.keys(profile).length !== 0) {
+    if (!profileReady) {
+      setPrevNumber(0);
+      setNumber(7);
+    }
+    if (prevNumber !== number && profileReady) {
       matchAPI();
       setPrevNumber(number);
     }
-  }, [profile, number]);
+  }, [profileReady, number]);
 
   //get a pair of spells from each player (10 in one game) from 7 matches
-  const getSpellsDurationGameMode = async () => {
-    let mySpellSets = [];
+  const getSpellsDurationGameModeForAll = () => {
     let gameDuration;
     let gameMode;
-    let spellSets = await matchHistory.map((match, i) => {
+    let spellSets = matchHistory.map((match, i) => {
       gameDuration = match.gameDuration;
       gameMode = match.gameMode;
       return match.participants.map((ptpt) => {
+        return {
+          spells: [ptpt.spell1Id, ptpt.spell2Id],
+          gameMode: gameMode,
+          gameDuration: gameDuration,
+        };
+      });
+    });
+    setPlayerSpells(Object.assign(playerSpells, spellSets));
+  };
+
+  const getSpellsDurationGameModeForUser = () => {
+    let mySpellSets = [];
+    let gameDuration;
+    let gameMode;
+    matchHistory.map((match, i) => {
+      gameDuration = match.gameDuration;
+      gameMode = match.gameMode;
+      match.participants.map((ptpt) => {
         //Separately save spells from a champion that you played
         if (ptpt.championId === allMatch[i][1]) {
           mySpellSets.push({
@@ -100,24 +119,17 @@ const ResultPage = ({
             gameDuration: gameDuration,
           });
         }
-        return {
-          spells: [ptpt.spell1Id, ptpt.spell2Id],
-          gameMode: gameMode,
-          gameDuration: gameDuration,
-        };
       });
     });
-    await setMySpells(Object.assign(mySpells, mySpellSets));
-    await setPlayerSpells(Object.assign(playerSpells, spellSets));
+    setMySpells(Object.assign(mySpells, mySpellSets));
   };
 
-  const getItemsKDAWin = async () => {
+  const getItemsKDAWin = () => {
     let myItemSets = [];
-    let itemSets = await matchHistory.map((match, i) => {
+    let itemSets = matchHistory.map((match, i) => {
       return match.participants.map((ptpt) => {
         //Separately save spells from a champion that you played
         if (ptpt.championId === allMatch[i][1]) {
-          console.log(ptpt.stats.win);
           myItemSets.push({
             items: [
               ptpt.stats.item0,
@@ -161,19 +173,20 @@ const ResultPage = ({
         };
       });
     });
-    await setMyItems(Object.assign(myItems, myItemSets));
-    await setPlayerItems(Object.assign(playerItems, itemSets));
+    setMyItems(Object.assign(myItems, myItemSets));
+    setPlayerItems(Object.assign(playerItems, itemSets));
   };
 
   useEffect(() => {
-    if (matchHistory.length > 0 && allMatch.length > 0) {
-      console.log(matchHistory);
-      getSpellsDurationGameMode();
+    if (!apiLoading && profileReady) {
+      getSpellsDurationGameModeForAll();
+      getSpellsDurationGameModeForUser();
       getItemsKDAWin();
     }
-  }, [matchHistory, allMatch]);
+  }, [apiLoading, profileReady]);
 
   const fetchMoreData = () => {
+    console.log("fetchmoreData");
     if (number === 35) {
       setHasMore(false);
     } else {
@@ -181,13 +194,17 @@ const ResultPage = ({
     }
   };
 
+  console.log("countmatches", countMatches);
+  //use countMatches to control fetchMoreData
   return (
-    <Root>
+    <Root id="root">
       <InfiniteScroll
         style={{ marginBottom: hasMore ? 100 : 50, overflow: "unset" }}
         dataLength={allMatch.length} //This is important field to render the next data
         next={fetchMoreData}
-        hasMore={hasMore}
+        hasMore={
+          countMatches !== 0 && number === countMatches ? hasMore : false
+        }
         loader={<Loading />}
         endMessage={
           <NoMore>
@@ -201,6 +218,8 @@ const ResultPage = ({
           mySpells={mySpells}
           playerItems={playerItems}
           myItems={myItems}
+          setCountMatches={setCountMatches}
+          apiLoading={apiLoading}
         />
       </InfiniteScroll>
     </Root>
@@ -216,6 +235,9 @@ const mapStateToProps = (state) => {
     myChamp: state.myChamp,
     version: state.version,
     playingTime: state.playingTime,
+    profileReady: state.profileReady,
+    playerSpells: state.playerSpells,
+    mySpells: state.mySpells,
   };
 };
 
@@ -225,6 +247,8 @@ const mapDispatchToProps = (dispatch) => {
     setMyChamp: (value) => dispatch(setMyChamp(value)),
     setPlayingTime: (value) => dispatch(setPlayingTime(value)),
     setAllMatch: (value) => dispatch(setAllMatch(value)),
+    setPlayerSpells: (value) => dispatch(setPlayerSpells(value)),
+    setMySpells: (value) => dispatch(setMySpells(value)),
   };
 };
 

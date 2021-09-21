@@ -69,7 +69,6 @@ const Root = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-
   &
     ${Match}:nth-child(${(p) => p.mIndex + 1})
     ${SpellPerkContainer}
@@ -77,7 +76,6 @@ const Root = styled.div`
     height: ${(p) => (p.hoverMainPerk ? "auto" : "0")};
     opacity: ${(p) => (p.hoverMainPerk ? "1" : "0")};
   }
-
   &
     ${Match}:nth-child(${(p) => p.sIndex + 1})
     ${SpellPerkContainer}
@@ -131,23 +129,22 @@ const Item = styled(Spell)`
 `;
 
 const Matches = ({
-  profile,
+  apiLoading,
+  profileReady,
   spells,
   perks,
   number,
   playerSpells,
   mySpells,
-  playerItems,
   myItems,
   allMatch,
   version,
+  setCountMatches,
   setPlayedChamp,
   playedChamp,
   setPlayingTime,
   playingTime,
 }) => {
-  console.log(perks);
-
   const classes = useStyles();
 
   const imageUrl =
@@ -212,10 +209,9 @@ const Matches = ({
     let tenPlayersSpells = [];
     let sevenGameSpells = {};
     let pyrspells = playerSpells.slice(number - 7, number);
-
     for (let i = 0; i < pyrspells.length; i++) {
       for (let keys of pyrspells[i]) {
-        for (let key of keys) {
+        for (let key of keys.spells) {
           twoSpells.push(findSpell(key));
         }
         tenPlayersSpells.push(twoSpells);
@@ -271,43 +267,44 @@ const Matches = ({
       .slice(number - 7, number)
       .map((champion) => champion[1]);
 
-    await Promise.all(
+    let championInfo = await Promise.all(
       champInfo.map((champ) =>
         fetch(`/api/findChampion?version=${version}&champNum=${champ}`)
       )
-    )
-      .then((allRes) => Promise.all(allRes.map((res) => res.json())))
-      .then(async (champs) => {
-        await Promise.all(
-          champs.map((champ) =>
-            fetch(
-              `/api/playedChampDetail?version=${version}&champ=${champ.champ.id}`
-            )
-          )
+    );
+    let champJsonInfo = await Promise.all(
+      championInfo.map((res) => res.json())
+    );
+    let champDetails = await Promise.all(
+      champJsonInfo.map((champ) =>
+        fetch(
+          `/api/playedChampDetail?version=${version}&champ=${champ.champ.id}`
         )
-          .then((allRes) => Promise.all(allRes.map((res) => res.json())))
-          .then(async (data) => {
-            let champsData = await data.map((champ) => {
-              return Object.values(champ)[0];
-            });
-            setMySpellSet({ ...mySpellSet, ...getMyspellInfo() });
-            setMyPerkSet({ ...myPerkSet, ...getMyPerksInfo() });
-            await setPlayedChamp(playedChamp.concat(champsData));
-          })
-          .catch((err) => {
-            console.error(err);
-          });
-      });
+      )
+    );
+    let champJsonDetails = await Promise.all(
+      champDetails.map((res) => res.json())
+    );
+    let champsData = await champJsonDetails.map((champ) => {
+      return Object.values(champ)[0];
+    });
+    setMySpellSet({ ...mySpellSet, ...getMyspellInfo() });
+    setMyPerkSet({ ...myPerkSet, ...getMyPerksInfo() });
+    setPlayedChamp(playedChamp.concat(champsData));
   };
 
-  useEffect(async () => {
-    if (Object.keys(profile).length !== 0 && allMatch.length !== 0) {
+  useEffect(() => {
+    if (profileReady && !apiLoading) {
       setMatchesLoading(true);
       champList();
       setSpellSet(getAllSpellInfo());
       setMatchesLoading(false);
     }
-  }, [profile, allMatch]);
+  }, [profileReady, apiLoading]);
+
+  useEffect(() => {
+    setCountMatches(Object.keys(mySpellSet).length);
+  }, [mySpellSet]);
 
   const getGameDuration = (timeInSeconds) => {
     return Math.floor(timeInSeconds / 60);
@@ -326,7 +323,9 @@ const Matches = ({
     setSPerkDescIndex(i + 1);
     setSPerkDescPos(perkPos.top);
   };
-  console.log(myPerkSet, mPerkDescPos);
+
+  console.log("from matches", Object.keys(mySpellSet).length);
+
   return (
     <Root
       hoverMainPerk={hoverMainPerk}
@@ -414,6 +413,7 @@ const mapStateToProps = (state) => {
     myChamp: state.myChamp,
     version: state.version,
     playedChamp: state.playedChamp,
+    profileReady: state.profileReady,
   };
 };
 

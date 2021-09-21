@@ -20,6 +20,18 @@ import {
   ALL_MATCH,
   SPELLS,
   PERKS,
+  SET_PLAYER_ITEMS,
+  SET_PLAYER_SPELLS,
+  SET_MY_ITMES,
+  SET_MY_SPELLS,
+  SET_MY_SPELL_SET,
+  SET_MY_PERK_SET,
+  SET_MY_ITEM_SET,
+  NUMBER,
+  INITIAL_STATE,
+  PROFILE_READY,
+  PLAYER_SPELLS,
+  MY_SPELLS,
 } from "../constants/action-types";
 
 const initialState = {
@@ -42,9 +54,70 @@ const initialState = {
   allMatch: [],
   spells: [],
   perks: [],
+  playerSpells: [],
+  playerItems: [],
+  mySpells: [],
+  myItems: [],
+  mySpellSet: {},
+  myPerkSet: {},
+  myItemSet: {},
+  number: 7,
+  profileReady: false,
+  playerSpells: [],
+  MYSpells: [],
 };
 
 const rootReducer = (state = initialState, action) => {
+  if (action.type === NUMBER) {
+    return {
+      ...state,
+      number: state.number + action.payload,
+    };
+  }
+  if (action.type === SET_MY_SPELL_SET) {
+    return {
+      ...state,
+      mySpellSet: Object.assign({}, action.payload),
+    };
+  }
+  if (action.type === SET_MY_PERK_SET) {
+    return {
+      ...state,
+      myPerkSet: Object.assign({}, action.payload),
+    };
+  }
+  if (action.type === SET_MY_ITEM_SET) {
+    return {
+      ...state,
+      myItemSet: Object.assign({}, action.payload),
+    };
+  }
+
+  if (action.type === SET_PLAYER_ITEMS) {
+    return {
+      ...state,
+      playerItems: Object.assign([], action.payload),
+    };
+  }
+  if (action.type === SET_PLAYER_SPELLS) {
+    return {
+      ...state,
+      playerSpells: Object.assign([], action.payload),
+    };
+  }
+  if (action.type === SET_MY_ITMES) {
+    return {
+      ...state,
+      myItems: Object.assign([], action.payload),
+    };
+  }
+  if (action.type === SET_MY_SPELLS) {
+    return {
+      ...state,
+      mySpells: Object.assign([], action.payload),
+    };
+  }
+
   if (action.type === SET_USER_PROFILE) {
     return {
       ...state,
@@ -175,6 +248,22 @@ const rootReducer = (state = initialState, action) => {
     return {
       ...state,
       playingTime: Object.assign([], action.payload),
+    };
+  }
+
+  if (action.type === INITIAL_STATE) {
+    return {
+      ...initialState,
+      username: action.payload.username,
+      opacity: action.payload.opacity,
+      scale: action.payload.scale,
+    };
+  }
+
+  if (action.type === PROFILE_READY) {
+    return {
+      ...state,
+      profileReady: action.payload,
     };
   }
 

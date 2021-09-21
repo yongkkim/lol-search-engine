@@ -99,7 +99,7 @@ app.route("/api/profile/").get((req, res) => {
   fetch(
     "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/" +
       req.query.username +
-      "?api_key=RGAPI-823ed1f4-600d-48ae-803c-ebbfa25ad58e"
+      "?api_key=RGAPI-0f613770-2ecb-4a31-8f2f-d815ca77a78e"
   )
     .then((res) => res.json())
     .then((data) => {
@@ -114,7 +114,7 @@ app.route("/api/ranked/").get((req, res) => {
   fetch(
     "https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/" +
       req.query.summonerID +
-      "?api_key=RGAPI-823ed1f4-600d-48ae-803c-ebbfa25ad58e"
+      "?api_key=RGAPI-0f613770-2ecb-4a31-8f2f-d815ca77a78e"
   )
     .then((res) => res.json())
     .then((data) => {
@@ -133,7 +133,7 @@ app.route("/api/allmatch/").get((req, res) => {
       req.query.number +
       "&beginIndex=" +
       (req.query.number - 7) +
-      "&api_key=RGAPI-823ed1f4-600d-48ae-803c-ebbfa25ad58e"
+      "&api_key=RGAPI-0f613770-2ecb-4a31-8f2f-d815ca77a78e"
   )
     .then((res) => res.json())
     .then((data) => {
@@ -153,7 +153,7 @@ app.route("/api/match/").get((req, res) => {
   fetch(
     "https://na1.api.riotgames.com/lol/match/v4/matches/" +
       req.query.gameId +
-      "?api_key=RGAPI-823ed1f4-600d-48ae-803c-ebbfa25ad58e"
+      "?api_key=RGAPI-0f613770-2ecb-4a31-8f2f-d815ca77a78e"
   )
     .then((res) => res.json())
     .then((data) => {

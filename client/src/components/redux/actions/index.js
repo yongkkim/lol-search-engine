@@ -18,8 +18,44 @@ import {
   ALL_MATCH,
   SPELLS,
   PERKS,
+  SET_PLAYER_SPELLS,
+  SET_PLAYER_ITEMS,
+  SET_MY_SPELLS,
+  SET_MY_ITMES,
+  SET_MY_SPELL_SET,
+  SET_MY_PERK_SET,
+  SET_MY_ITEM_SET,
+  NUMBER,
+  INITIAL_STATE,
+  PROFILE_READY,
+  PLAYER_SPELLS,
+  MY_SPELLS,
 } from "../constants/action-types";
 
+export function setNumber(value) {
+  return { type: NUMBER, payload: value };
+}
+export function setMySpellSet(value) {
+  return { type: SET_MY_SPELL_SET, payload: value };
+}
+export function setMyPerkSet(value) {
+  return { type: SET_MY_PERK_SET, payload: value };
+}
+export function setMyItemSet(value) {
+  return { type: SET_MY_ITEM_SET, payload: value };
+}
+export function setPlayerSpells(value) {
+  return { type: SET_PLAYER_SPELLS, payload: value };
+}
+export function setPlayerItems(value) {
+  return { type: SET_PLAYER_ITEMS, payload: value };
+}
+export function setMySpells(value) {
+  return { type: SET_MY_SPELLS, payload: value };
+}
+export function setMyItems(value) {
+  return { type: SET_MY_ITMES, payload: value };
+}
 export function setPerks(value) {
   return { type: PERKS, payload: value };
 }
@@ -76,4 +112,10 @@ export function setUsername(value) {
 }
 export function setLoading(loading) {
   return { type: LOADING, payload: loading };
+}
+export function setInitialState(username) {
+  return { type: INITIAL_STATE, payload: username };
+}
+export function setProfileReady(value) {
+  return { type: PROFILE_READY, payload: value };
 }

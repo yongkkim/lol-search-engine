@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styled from "styled-components";
 import image from "./components/images/leblanc.jpg";
 import ResultPage from "./components/resultPage";
@@ -19,18 +19,8 @@ import {
   setDragonDataVersion,
   setSpells,
   setPerks,
-  setMatchHistory,
-  setMyChamp,
-  setPlayingTime,
-  setAllMatch,
-  setPlayedChamp,
-  setPlayerItems,
-  setPlayerSpells,
-  setMyItems,
-  setMySpells,
-  setMySpellSet,
-  setMyPerkSet,
-  setMyItemSet,
+  setInitialState,
+  setProfileReady,
 } from "./components/redux/actions";
 import fetch from "node-fetch";
 
@@ -131,7 +121,6 @@ const Searchbar = styled.input.attrs({
   width: 27%;
   padding-left: 10px;
   border: none;
-
   &:focus {
     outline: none;
   }
@@ -156,7 +145,7 @@ const App = ({
   submit,
   error,
   username,
-  profile,
+  profileReady,
   loading,
   setOpacity,
   setScale,
@@ -171,80 +160,59 @@ const App = ({
   setDragonDataVersion,
   setSpells,
   setPerks,
-  setMatchHistory,
-  setMyChamp,
-  setPlayingTime,
-  setAllMatch,
-  setMySpellSet,
-  setMyPerkSet,
-  setMyItemSet,
+  setInitialState,
+  setProfileReady,
 }) => {
-  // const matchAPI = async (pf) => {
-  //   //Get information of most recent 7 matches (game ids, champion ids, time)
-  //   await fetch(`/api/allmatch?id=${pf.accountId}&number=${number}`)
-  //     .then((res) => res.json())
-  //     .then(async (res) => {
-  //       //get detailed information of each of 7 matches using game ids from the first fetch
-  //       let ids = await res.gameInfo.map((id) => id[0]);
+  const [isReset, setIsReset] = useState(false);
+  const resource = async () => {
+    let validVersion = await fetch(
+      "https://ddragon.leagueoflegends.com/api/versions.json"
+    );
+    validVersion = await validVersion.json();
+    setDragonDataVersion(validVersion[0]);
 
-  //       await Promise.all(ids.map((id) => fetch(`/api/match?gameId=${id}`)))
-  //         .then((allRes) => Promise.all(allRes.map((res) => res.json())))
-  //         .then(async (data) => {
-  //           let values = await data.map((champData) => {
-  //             return champData.data;
-  //           });
-  //           //store results from the first fetch
-  //           await setAllMatch(allMatch.concat(res.gameInfo));
-  //           await setMatchHistory(matchHistory.concat(values));
+    let recentSpells = await fetch(`/api/spells?version=${validVersion[0]}`);
+    recentSpells = await recentSpells.json();
+    setSpells(recentSpells);
 
-  //           await getSpellsDurationGameMode(
-  //             allMatch.concat(res.gameInfo),
-  //             matchHistory.concat(values)
-  //           );
-  //           await getItemsKDAWin(
-  //             allMatch.concat(res.gameInfo),
-  //             matchHistory.concat(values)
-  //           );
-  //         })
-  //         .catch((err) => {
-  //           console.error(err);
-  //         });
-  //     });
-  // };
+    let recentPerks = await fetch(`/api/perks?version=${validVersion[0]}`);
+    recentPerks = await recentPerks.json();
+    setPerks(recentPerks);
+  };
 
   const handleSubmit = async (e) => {
-    if (Object.keys(profile).length !== 0) {
-      await setUserProfile({});
-      await setAllMatch([]);
-      await setMatchHistory([]);
-      await setMySpellSet({});
-      await setMyPerkSet({});
-      await setSubmit(false);
-    }
     e.preventDefault();
     let cleanedUsername = username.replace(/['"]+/g, "").trim();
     if (cleanedUsername !== "") {
+      if (profileReady) {
+        setInitialState({ username: username, opacity: opacity, scale: scale });
+        setIsReset(true);
+      }
+
       setLoading(true);
-      await fetch(`/api/profile?username=${cleanedUsername}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (!data.data.status.message) {
-            setUserProfile(data.data);
-            // matchAPI(data.data);
-            setSubmit(true);
-            setError(false);
-            setTimeout(() => {
-              setLoading(false);
-            }, 2000);
-          } else {
-            console.log(data.data.status);
-            setError(true);
-            setErrorMsg(data.data.status.message);
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-        });
+      setProfileReady(false);
+
+      let userProfile = await fetch(`/api/profile?username=${cleanedUsername}`);
+
+      if (!userProfile.ok) {
+        setError(true);
+        setErrorMsg("Username is invalid");
+      } else {
+        userProfile = await userProfile.json();
+
+        setUserProfile(userProfile.data);
+        resource();
+        setSubmit(true);
+        setError(false);
+        setProfileReady(true);
+        setTimeout(
+          () => {
+            setLoading(false);
+          },
+          !isReset ? 2000 : 0
+        );
+        setIsReset(false);
+      }
     } else {
       setError(true);
       setErrorMsg("Username should not be empty");
@@ -263,32 +231,14 @@ const App = ({
   };
 
   useEffect(() => {
-    const resource = async () => {
-      setOpacity(1);
-      setScale(1.05);
-      setWidth(30);
-      await fetch("https://ddragon.leagueoflegends.com/api/versions.json")
-        .then((res) => res.json())
-        .then(async (data) => {
-          await setDragonDataVersion(data[0]);
-          await fetch(`/api/spells?version=${data[0]}`)
-            .then((res) => res.json())
-            .then((data) => {
-              setSpells(data);
-            });
-          await fetch(`/api/perks?version=${data[0]}`)
-            .then((res) => res.json())
-            .then((data) => {
-              setPerks(data);
-            });
-        });
-    };
-
-    resource();
+    setOpacity(1);
+    setScale(1.05);
+    setWidth(30);
+    console.log("change style");
   }, []);
 
   useEffect(() => {
-    if (submit) {
+    if (submit && top !== -45) {
       setTop(-45);
     }
   }, [submit]);
@@ -296,7 +246,7 @@ const App = ({
   return (
     <Container>
       <BackgroundImg image={image}></BackgroundImg>
-      <Overlay checkProfile={Object.keys(profile).length !== 0}></Overlay>
+      <Overlay checkProfile={profileReady}></Overlay>
       <SearchContainer opacity={opacity} scale={scale}>
         <SearchForm
           opacity={opacity}
@@ -304,13 +254,10 @@ const App = ({
           onSubmit={(e) => handleSubmit(e)}
         >
           <TitleContainer>
-            <Title opacity={opacity} submit={Object.keys(profile).length !== 0}>
+            <Title opacity={opacity} submit={profileReady}>
               Get your match history!
             </Title>
-            <Underline
-              width={width}
-              submit={Object.keys(profile).length !== 0}
-            />
+            <Underline width={width} submit={profileReady} />
           </TitleContainer>
           <FormElement>
             <Searchbar onChange={handleChange} value={username} />
@@ -320,10 +267,9 @@ const App = ({
         </SearchForm>
       </SearchContainer>
       {!error && (
-        <ResultContainer show={Object.keys(profile).length !== 0 && !loading}>
-          {console.log(error)}
-          {Object.keys(profile).length !== 0 && !loading && <Profile />}
-          {Object.keys(profile).length !== 0 && !loading && <ResultPage />}
+        <ResultContainer show={profileReady && !loading}>
+          <Profile />
+          <ResultPage />
         </ResultContainer>
       )}
     </Container>
@@ -342,6 +288,7 @@ const mapStateToProps = (state) => {
     scale: state.scale,
     error: state.error,
     username: state.username,
+    profileReady: state.profileReady,
   };
 };
 
@@ -360,19 +307,8 @@ const mapDispatchToProps = (dispatch) => {
     setDragonDataVersion: (version) => dispatch(setDragonDataVersion(version)),
     setSpells: (value) => dispatch(setSpells(value)),
     setPerks: (value) => dispatch(setPerks(value)),
-
-    setMatchHistory: (value) => dispatch(setMatchHistory(value)),
-    setMyChamp: (value) => dispatch(setMyChamp(value)),
-    setPlayingTime: (value) => dispatch(setPlayingTime(value)),
-    setAllMatch: (value) => dispatch(setAllMatch(value)),
-    setPlayedChamp: (value) => dispatch(setPlayedChamp(value)),
-    setPlayerSpells: (value) => dispatch(setPlayerSpells(value)),
-    setPlayerItems: (value) => dispatch(setPlayerItems(value)),
-    setMySpells: (value) => dispatch(setMySpells(value)),
-    setMyItems: (value) => dispatch(setMyItems(value)),
-    setMySpellSet: (value) => dispatch(setMySpellSet(value)),
-    setMyPerkSet: (value) => dispatch(setMyPerkSet(value)),
-    setMyItemSet: (value) => dispatch(setMyItemSet(value)),
+    setProfileReady: (value) => dispatch(setProfileReady(value)),
+    setInitialState: (value) => dispatch(setInitialState(value)),
   };
 };
 
